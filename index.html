@@ -16,21 +16,211 @@
 	<!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/6.0.0/normalize.min.css" crossorigin="anonymous"> -Inc in bootstrap!-->
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" crossorigin="anonymous">
 
-	<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/webcomponentsjs/0.7.24/webcomponents.min.js" crossorigin="anonymous"></script>-->
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.8.3/modernizr.min.js" crossorigin="anonymous"></script>	
+	<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/webcomponentsjs/0.7.24/webcomponents.min.js" type="application/javascript" type="application/javascript" crossorigin="anonymous"></script>-->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.8.3/modernizr.min.js" type="application/javascript" crossorigin="anonymous"></script>
 	<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js" crossorigin="anonymous"></script> -using slim!-->
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.slim.min.js" crossorigin="anonymous"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" crossorigin="anonymous"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" crossorigin="anonymous"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js" crossorigin="anonymous"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.0.3/howler.js" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.slim.min.js" type="application/javascript" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" type="application/javascript" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" type="application/javascript" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js" type="application/javascript" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.0.3/howler.js" type="application/javascript" crossorigin="anonymous"></script>
 </head>
 
 <body>
 	<!--[if lt IE 7]>
-			<p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="#">upgrade your browser</a> to improve your experience.</p>
-		<![endif]-->
+		<p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="#">upgrade your browser</a> to improve your experience.</p>
+	<![endif]-->
 
+	<style>
+		/* Space out content a bit */
+
+		body {
+			padding-top: 1.5rem;
+			padding-bottom: 1.5rem;
+		}
+		
+		/* Everything but the jumbotron gets side spacing for mobile first views */
+		.header,
+		.marketing,
+		.footer {
+			padding-right: 1rem;
+			padding-left: 1rem;
+		}
+		/* Custom page header */
+		.header {
+			padding-bottom: 1rem;
+			border-bottom: .05rem solid #e5e5e5;
+		}
+		/* Make the masthead heading the same height as the navigation */
+		.header h3 {
+			margin-top: 0;
+			margin-bottom: 0;
+			line-height: 3rem;
+		}
+
+		/* Custom page footer */
+		.footer {
+			padding-top: 1.5rem;
+			color: #777;
+			border-top: .05rem solid #e5e5e5;
+		}
+
+		/* Customize container */
+		@media (min-width: 48em) {
+			.container {
+				max-width: 46rem;
+			}
+		}
+		.container-narrow > hr {
+			margin: 2rem 0;
+		}
+
+		/* Main marketing message and sign up button */
+		.jumbotron {
+			text-align: center;
+			border-bottom: .05rem solid #e5e5e5;
+		}
+
+		.jumbotron .btn {
+			padding: .75rem 1.5rem;
+			font-size: 1.5rem;
+		}
+
+		/* Supporting marketing content */
+		.marketing {
+			margin: 3rem 0;
+		}
+		.marketing p+h4 {
+			margin-top: 1.5rem;
+		}
+
+		/* Responsive: Portrait tablets and up */
+		@media screen and (min-width: 48em) {
+			/* Remove the padding we set earlier */
+			.header,
+			.marketing,
+			.footer {
+				padding-right: 0;
+				padding-left: 0;
+			}
+			/* Space out the masthead */
+			.header {
+				margin-bottom: 2rem;
+			}
+			/* Remove the bottom border on the jumbotron for visual effect */
+			.jumbotron {
+				border-bottom: 0;
+			}
+		}
+	</style>
+
+	<div class="container">
+		<div class="header clearfix">
+			<nav>
+				<ul class="nav nav-pills float-right">
+					<li class="nav-item">
+						<a class="nav-link active" href="#">Home <span class="sr-only">(current)</span></a>
+					</li>
+					<li class="nav-item">
+						<a class="nav-link" href="#">About</a>
+					</li>
+					<li class="nav-item">
+						<a class="nav-link" href="#">Contact</a>
+					</li>
+				</ul>
+			</nav>
+			<h3 class="text-muted">Metronome</h3>
+		</div>
+
+		<div class="jumbotron">
+			<form>
+				<div class="form-group">
+					<button id="PlayPauseButton" type="button" class="btn btn-primary">Play</button>
+					<button id="StopButton" type="button" class="btn btn-primary">Stop</button>
+					<button id="VolumeUpButton" type="button" class="btn btn-primary">+</button>
+					<button id="VolumeDownButton" type="button" class="btn btn-primary">-</button>
+				</div>
+			</form>
+		</div>
+
+		<div class="row marketing">
+			<div class="col-lg-6">
+				<h4>Subheading</h4>
+				<p>Donec id elit non mi porta gravida at eget metus. Maecenas faucibus mollis interdum.</p>
+
+				<h4>Subheading</h4>
+				<p>Morbi leo risus, porta ac consectetur ac, vestibulum at eros. Cras mattis consectetur purus sit amet fermentum.</p>
+
+				<h4>Subheading</h4>
+				<p>Maecenas sed diam eget risus varius blandit sit amet non magna.</p>
+			</div>
+
+			<div class="col-lg-6">
+				<h4>Subheading</h4>
+				<p>Donec id elit non mi porta gravida at eget metus. Maecenas faucibus mollis interdum.</p>
+
+				<h4>Subheading</h4>
+				<p>Morbi leo risus, porta ac consectetur ac, vestibulum at eros. Cras mattis consectetur purus sit amet fermentum.</p>
+
+				<h4>Subheading</h4>
+				<p>Maecenas sed diam eget risus varius blandit sit amet non magna.</p>
+			</div>
+		</div>
+
+		<footer class="footer">
+			<p>&copy; Company 2017</p>
+		</footer>
+	</div>
+
+	<script type="application/javascript">
+		//https://github.com/goldfire/howler.js
+
+		var sound = new Howl({
+			src: ['./Sounds/Drum Hits/Snares/ClapAnalog.wav'],
+			loop: true,
+			rate: 1.0
+		});
+
+		let playing = false;
+
+		const playPauseButton = $('#PlayPauseButton');
+		playPauseButton.click(() => {
+
+			if (playing) {
+				playPauseButton.text('Play');
+				sound.pause();
+			} else {
+				playPauseButton.text('Pause');
+				sound.play();
+			}
+			playing = !playing;
+		});
+	</script>
+
+	<script>
+		/*!
+		 * IE10 viewport hack for Surface/desktop Windows 8 bug
+		 * Copyright 2014-2017 The Bootstrap Authors
+		 * Copyright 2014-2017 Twitter, Inc.
+		 * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
+		 */
+
+		// See the Getting Started docs for more information:
+		// https://getbootstrap.com/getting-started/#support-ie10-width
+
+		(function () {
+			'use strict'
+
+			if (navigator.userAgent.match(/IEMobile\/10\.0/)) {
+				var msViewportStyle = document.createElement('style')
+				msViewportStyle.appendChild(
+					document.createTextNode(
+						'@-ms-viewport{width:auto!important}'))
+				document.head.appendChild(msViewportStyle)
+			}
+
+		}())
+	</script>
 </body>
 
 </html>
