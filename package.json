@@ -1,5 +1,11 @@
 {
-  "name": "metronome",
-  "version": "1.0.0",
-  "private": true
+	"name": "metronome",
+	"version": "1.0.0",
+	"private": true,
+	"scripts": {
+		"start": "lite-server --port 5858"
+	},
+	"devDependencies": {
+		"lite-server": "^2.3.0"
+	}
 }
