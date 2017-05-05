@@ -25,7 +25,7 @@
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" type="application/javascript" crossorigin="anonymous"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" type="application/javascript" crossorigin="anonymous"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js" type="application/javascript" crossorigin="anonymous"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.0.3/howler.min.js" type="application/javascript" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/0.10.0/Tone.min.js" type="application/javascript" crossorigin="anonymous"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.8.0/bootstrap-slider.min.js" type="application/javascript" crossorigin="anonymous"></script>
 </head>
 
@@ -126,22 +126,22 @@
 
 		<div class="jumbotron text-center">
 			<!-- Time -->
-			<span>
+			<h2>
 				<i class="fa fa-clock-o"></i>&nbsp;<label id="TimeLabel">0:00:00</label>
-			</span>
+			</h2>
 			<br />
 			<!-- Controls -->
-			<button id="PlayPauseButton" type="button" class="btn btn-primary"><i class="fa fa-play"></i></button>
-			<button id="StopButton" type="button" class="btn btn-primary"><i class="fa fa-stop"></i></button>
-			<button id="VolumeDownButton" type="button" class="btn btn-primary"><i class="fa fa-volume-down"></i></button>
-			<button id="VolumeUpButton" type="button" class="btn btn-primary"><i class="fa fa-volume-up"></i></button>
-			<button id="VolumeOffButton" type="button" class="btn btn-primary"><i class="fa fa-volume-off"></i>&nbsp;<span id="VolumeSpan">100</span></button>
+			<button id="PlayPauseButton" type="button" class="btn btn-primary btn-lg"><i class="fa fa-play"></i></button>
+			<button id="StopButton" type="button" class="btn btn-primary btn-lg"><i class="fa fa-stop"></i></button>
+			<button id="VolumeDownButton" type="button" class="btn btn-primary btn-lg"><i class="fa fa-volume-down"></i></button>
+			<button id="VolumeUpButton" type="button" class="btn btn-primary btn-lg"><i class="fa fa-volume-up"></i></button>
+			<button id="VolumeOffButton" type="button" class="btn btn-primary btn-lg"><i class="fa fa-volume-off"></i>&nbsp;<span id="VolumeSpan">+0</span>db</button>
 			<hr />
 			<div class="row">
 				<!-- BPM -->
 				<div class="input-group col-md-6">
 					<span class="input-group-addon"><i class="fa fa-spinner"></i>BPM</span>
-					<input id="BPMInput" type="number" class="form-control" value="100" min="0" max="220">
+					<input id="BPMInput" type="number" class="form-control" value="100" min="10" max="220">
 					<div class="input-group-btn">
 						<button id="BPMIncreaseButton" type="button" class="btn btn-primary btn-sm"><i class="fa fa-plus"></i></button>
 						<button id="BPMDecreaseButton" type="button" class="btn btn-primary btn-sm"><i class="fa fa-minus"></i></button>
@@ -199,7 +199,6 @@
 					</div>
 				</div>
 			</div>
-
 		</div>
 
 		<div class="row marketing">
@@ -267,14 +266,7 @@
 		}
 	</script>
 	<script type="application/javascript">
-		//https://github.com/goldfire/howler.js
-
-		const sound = new Howl({
-			src: ['./Sounds/Drum Hits/Snares/ClapAnalog.wav'],
-			loop: true,
-			rate: 1.0
-		});
-		let playing = false;
+		//https://tonejs.github.io/docs/
 
 		// :: Time ::
 
@@ -289,45 +281,44 @@
 		const volumeDownButton = $('#VolumeDownButton');
 		const volumeOffButton = $('#VolumeOffButton');
 		const volumeSpan = $('#VolumeSpan');
+		let playing = false;
 
 		playPauseButton.click(() => {
 
 			if (playing) {
-				playPauseButton.html('<i class="fa fa-play"></i>');
-				sound.pause();
-				timer.pause();
+				pause();
 			} else {
-				playPauseButton.html('<i class="fa fa-pause"></i>');
-				sound.play();
-				timer.start((h, m, s, ms) => timeLabel.text(h + ':' + ("0" + m).slice(-2) + ':' + ("0" + s).slice(-2)));
+				play();
 			}
 			playing = !playing;
 		});
 		stopButton.click(() => {
 
-			playPauseButton.html('<i class="fa fa-play"></i>');
-			sound.stop();
-			timer.stop();
-			timeLabel.text('0:00:00');
+			stop();
 			playing = false;
 		});
 		volumeUpButton.click(() => {
 
-			const clampedVolume = Math.min(sound.volume() + 0.1, 1.0).toPrecision(1);
-			volumeSpan.text(clampedVolume * 100);
-			sound.volume(clampedVolume);
+			volumeSpan.show();
+			Tone.Master.mute = false;
+
+			const clampedVolume = parseInt(Math.min(Tone.Master.volume.value + 3, 24));
+			volumeSpan.text(clampedVolume >= 0 ? '+' + clampedVolume : clampedVolume);
+			Tone.Master.volume.value = clampedVolume;
 		});
 		volumeDownButton.click(() => {
 
-			const clampedVolume = Math.max(sound.volume() - 0.1, 0.0).toPrecision(1);
-			volumeSpan.text(clampedVolume * 100);
-			sound.volume(clampedVolume);
+			volumeSpan.show();
+			Tone.Master.mute = false;
+
+			const clampedVolume = parseInt(Math.max(Tone.Master.volume.value - 3, -24));
+			volumeSpan.text(clampedVolume >= 0 ? '+' + clampedVolume : clampedVolume);
+			Tone.Master.volume.value = clampedVolume;
 		});
 		volumeOffButton.click(() => {
 
-			const isMuted = sound.mute();
-			isMuted ? volumeSpan.show() : volumeSpan.hide(); // Invert cuz we gonna change it now
-			sound.mute(!isMuted);
+			Tone.Master.mute ? volumeSpan.show() : volumeSpan.hide(); // Invert cuz we gonna change it now
+			Tone.Master.mute = !Tone.Master.mute;
 		});
 
 		// ==== BPM ====
@@ -341,10 +332,9 @@
 		let taps = [];
 		const tapTimeout = 1000 * 4;
 
-		bpmInput.change(() => setBPM(parseInt(bpmInput.val())));
-		bpmIncreaseButton.click(() => setBPM(parseInt(bpmInput.val()) + 10));
-		bpmDecreaseButton.click(() => setBPM(parseInt(bpmInput.val()) - 10));
-
+		bpmInput.change(() => setBPM(getBPM()));
+		bpmIncreaseButton.click(() => setBPM(getBPM() + 10));
+		bpmDecreaseButton.click(() => setBPM(getBPM() - 10));
 		bpmTapButton.click(() => {
 
 			const now = new Date().getTime();
@@ -370,34 +360,86 @@
 		//https://github.com/seiyria/bootstrap-slider
 
 		const bpmSlider = $('#BPMSlider').bootstrapSlider({
-			min: bpmInput.attr('min'),
-			max: bpmInput.attr('max'),
-			value: bpmInput.val(),
+			min: parseInt(bpmInput.attr('min')),
+			max: parseInt(bpmInput.attr('max')),
+			value: getBPM(),
 			step: 1,
 		});
 		bpmSlider.change(() => setBPM(bpmSlider.bootstrapSlider('getValue')));
-
-		function setBPM(value) {
-
-			const clampedValue = Math.max(Math.min(value, bpmInput.attr('max')), bpmInput.attr('min'));
-			bpmSlider.bootstrapSlider('setValue', clampedValue);
-			bpmInput.val(clampedValue);
-		}
 
 		// :: Meter ::
 
 		const beatsInput = $('#BeatsInput');
 		const subunitsInput = $('#SubunitsInput');
 
+		// :: Subdivisions ::
+
+		const subdivisionsInput = $('#SubdivisionsInput');
+
+		// :: Sounds ::
+
+		Tone.Transport.timeSignature = getMeter();
+		Tone.Transport.bpm.value = getBPM();
+
+		const beat = new Tone.Player({
+			url: "./Sounds/Ping Low.wav",
+		}).toMaster();
+
+		//Tone.Transport.loop = true;
+		// Tone.Transport.loopStart = "4m";
+		// Tone.Transport.loopEnd = "8m";
+
+		//this will start the player on every quarter note
+		Tone.Transport.scheduleRepeat((time) => beat.start(time), "4n");
+
+		function play () {
+
+			playPauseButton.html('<i class="fa fa-pause"></i>');
+			Tone.Transport.start();
+			timer.start((h, m, s, ms) => timeLabel.text(h + ':' + ("0" + m).slice(-2) + ':' + ("0" + s).slice(-2)));
+		}
+
+		function pause() {
+
+			playPauseButton.html('<i class="fa fa-play"></i>');
+			Tone.Transport.pause();
+			timer.pause();
+		}
+
+		function stop () {
+			
+			playPauseButton.html('<i class="fa fa-play"></i>');
+			Tone.Transport.stop();
+			timer.stop();
+			timeLabel.text('0:00:00');
+		}
+
+		function getBPM() {
+
+			return parseInt(bpmInput.val());
+		}
+
+		function setBPM(value) {
+
+			const clampedValue = Math.max(Math.min(value, bpmInput.attr('max')), bpmInput.attr('min'));
+			bpmSlider.bootstrapSlider('setValue', clampedValue);
+			bpmInput.val(clampedValue);
+			Tone.Transport.bpm.value = clampedValue;
+		}
+
+		function getMeter() {
+
+			const beats = parseInt(beatsInput.val());
+			const subunits = parseInt(subunitsInput.val());
+			return [beats, subunits];
+		}
+
 		function setMeter(beats, subunits) {
 
 			beatsInput.val(beats);
 			subunitsInput.val(subunits);
+			Tone.Transport.timeSignature = [beats, subunits];
 		}
-
-		// :: Subdivisions ::
-
-		const subdivisionsInput = $('#SubdivisionsInput');
 
 		function setSubdivisions(subdivisions) {
 
