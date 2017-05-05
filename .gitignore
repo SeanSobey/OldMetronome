@@ -1,0 +1,9 @@
+# Dependency directories
+node_modules
+jspm_packages
+
+# VSCode
+.vscode/**/*
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/settings.json
