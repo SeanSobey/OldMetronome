@@ -20,8 +20,8 @@
 
 	<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/webcomponentsjs/0.7.24/webcomponents.min.js" type="application/javascript" type="application/javascript" crossorigin="anonymous"></script>-->
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.8.3/modernizr.min.js" type="application/javascript" crossorigin="anonymous"></script>
-	<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js" crossorigin="anonymous"></script> -using slim!-->
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.slim.min.js" type="application/javascript" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-color/2.1.2/jquery.color.min.js" type="application/javascript" crossorigin="anonymous"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" type="application/javascript" crossorigin="anonymous"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" type="application/javascript" crossorigin="anonymous"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js" type="application/javascript" crossorigin="anonymous"></script>
@@ -214,10 +214,12 @@
 				</div>
 			</div>
 			<hr />
-			<span class="badge badge-pill badge-default">1</span>
-			<span class="badge badge-pill badge-default">2</span>
-			<span class="badge badge-pill badge-default">3</span>
-			<span class="badge badge-pill badge-default">4</span>
+			<div id="Pills">
+				<span class="badge badge-pill badge-default" style="margin: 3px">1</span>
+				<span class="badge badge-pill badge-default" style="margin: 3px">2</span>
+				<span class="badge badge-pill badge-default" style="margin: 3px">3</span>
+				<span class="badge badge-pill badge-default" style="margin: 3px">4</span>
+			</div>
 		</div>
 
 		<div class="row marketing">
@@ -351,9 +353,9 @@
 		let taps = [];
 		const tapTimeout = 1000 * 4;
 
-		bpmInput.change(() => setBPM(getBPM()));
-		bpmIncreaseButton.click(() => setBPM(getBPM() + 10));
-		bpmDecreaseButton.click(() => setBPM(getBPM() - 10));
+		bpmInput.change(() => setBPM(parseInt(bpmInput.val())));
+		bpmIncreaseButton.click(() => setBPM(parseInt(bpmInput.val()) + 10));
+		bpmDecreaseButton.click(() => setBPM(parseInt(bpmInput.val()) - 10));
 		bpmTapButton.click(() => {
 
 			const now = new Date().getTime();
@@ -391,27 +393,84 @@
 		const beatsInput = $('#BeatsInput');
 		const subunitsInput = $('#SubunitsInput');
 
+		beatsInput.change(() => setMeter(parseInt(beatsInput.val()), parseInt(subunitsInput.val())));
+		subunitsInput.change(() => setMeter(parseInt(beatsInput.val()), parseInt(subunitsInput.val())));
+
 		// :: Subdivisions ::
 
+		const Subdivisions = {
+			None: 'None',
+			Single: 'Single',
+			Duple: 'Duple',
+			Triple: 'Triple',
+			Quadruple: 'Quadruple',
+			Quintuple: 'Quintuple',
+			Sextuple: 'Sextuple',
+			Septuple: 'Septuple',
+			Tripple3rd: 'Tripple 3rd',
+			Quadruple4th: 'Quadruple 4th',
+		};
 		const subdivisionsInput = $('#SubdivisionsInput');
+
+		subdivisionsInput.click(() => setSubdivisions(parseInt(subdivisionsInput.val())));
+
+		// :: Pills ::
+
+		const pills = $('#Pills');
 
 		// :: Sounds ::
 
+		/*
+		The top number of the time signature tells you how many beats to count. This could be any number. 
+		Most often the number of beats will fall between 2 and 12.
+
+		The bottom number tells you what kind of note to count. That is, whether to count the beats as quarter notes, eighth notes, 
+		or sixteenth notes. So the only numbers you will see as the bottom number (the denominator) will correspond to note values:
+
+			1 = whole note (you’ll never see this)
+			2 = half note
+			4 = quarter note
+			8 = eighth note
+			16 = sixteenth note 
+		*/
+
+		//The time signature as just the numerator over 4. For example 4/4 would be just 4 and 6/8 would be 3.
 		Tone.Transport.timeSignature = getMeter();
 		Tone.Transport.bpm.value = getBPM();
 
+		//console.log('timeSignature', Tone.Transport.timeSignature);
+		// console.log('value', Tone.Transport.bpm.value);
+
+		const accent = new Tone.Player({
+			url: "./Sounds/Ping Hi.wav",
+		}).toMaster();
 		const beat = new Tone.Player({
 			url: "./Sounds/Ping Low.wav",
 		}).toMaster();
 
-		//Tone.Transport.loop = true;
-		// Tone.Transport.loopStart = "4m";
-		// Tone.Transport.loopEnd = "8m";
-
-		//this will start the player on every whole note
+		let currentNote = 0;
+		
+		//https://tonejs.github.io/docs/#types/Time
 		Tone.Transport.scheduleRepeat((time) => {
-			beat.start(time)
-		}, "1n");
+
+			currentNote = (currentNote % Tone.Transport.timeSignature) + 1;
+			console.log('currentNote', currentNote);
+			const currentPill = $(pills.children()[currentNote - 1]);
+			console.log('currentPill', currentPill.css('background-color'));
+			
+			if (currentNote === 1) {
+				currentPill.animate({ backgroundColor: "rgb(255,0,0)" }, 50, () => currentPill.animate({ backgroundColor: '#636c72' }));
+				accent.start(time);
+			} else {
+				currentPill.animate({ backgroundColor: "rgb(0,255,0)" }, 50, () => currentPill.animate({ backgroundColor: '#636c72' }));
+				beat.start(time);
+			}
+
+		}, "4n");
+
+		// TODO: Reset ALL ui
+
+		// :: Functions ::
 
 		function play() {
 
@@ -460,11 +519,22 @@
 			beatsInput.val(beats);
 			subunitsInput.val(subunits);
 			Tone.Transport.timeSignature = [beats, subunits];
+
+			pills.empty();
+			for (var index = 1; index <= Tone.Transport.timeSignature; index++) {
+				pills.append($('<span>').addClass('badge badge-pill badge-default').css('margin', '3px').text(index));
+				//pills.append(`<span class="badge badge-pill badge-default">${index}</span>`);				
+			}
+		}
+
+		function getSubdivisions() {
+
+			return _(Subdivisions).findKey(value => value === subdivisionsInput.val());
 		}
 
 		function setSubdivisions(subdivisions) {
 
-			subdivisionsInput.val(subdivisions);
+			subdivisionsInput.val(Subdivisions[subdivisions]);
 		}
 	</script>
 
