@@ -1,317 +1,306 @@
-//https://tonejs.github.io/docs/
+$(() => {
 
-// :: Time ::
+	Vue.filter('time', value => `${value.h}:${("0" + value.m).slice(-2)}:${("0" + value.s).slice(-2)}`);
+	Vue.filter('volume', (value, mute) => mute ? '' : `${value >= 0 ? '+' : ''}${value}db`);
 
-const timer = new Timer();
-const timeLabel = $('#TimeLabel');
+	const timer = new Timer();
+	const tapTimeout = 1000 * 4;
 
-// :: Controls ::
+	const app = new Vue({
+		el: '#app',
+		data: {
+			isPlaying: false,
+			time: {
+				h: 0,
+				m: 0,
+				s: 0,
+				ms: 0
+			},
+			bpm: 100,
+			bpmMin: 10,
+			bpmMax: 220,
+			bpmIncrement: 10,
+			bpmRamp: {
+				from: 100,
+				to: 100,
+				interval: 60,
+				timeEnabled: false,
+				stepsEnabled: false,
+				min: 5,
+				max: 1200,
+			},
+			beats: 4,
+			subunits: 4,
+			mute: false,
+			volume: 0,
 
-const playPauseButton = $('#PlayPauseButton');
-const stopButton = $('#StopButton');
-const volumeUpButton = $('#VolumeUpButton');
-const volumeDownButton = $('#VolumeDownButton');
-const volumeOffButton = $('#VolumeOffButton');
-const volumeSpan = $('#VolumeSpan');
-let playing = false;
+			_taps: [],
+		},
+		methods: {
+			playPauseOnClick: function () {
 
-playPauseButton.click(() => {
+				this.isPlaying = !this.isPlaying;
+				if (!this.isPlaying) {
 
-	if (playing) {
-		pause();
-	} else {
-		play();
-	}
-	playing = !playing;
-});
-stopButton.click(() => {
+					Tone.Transport.pause();
+					timer.pause();
+					return;
+				}
+				Tone.Transport.bpm.value = this.isbpmRampEnabled() ? this.bpmRamp.from : this.bpm;
+				Tone.Transport.bpm.rampTo(
+					this.bpmRamp.timeEnabled ? this.bpmRamp.to : this.bpm,
+					this.bpmRamp.timeEnabled ? this.bpmRamp.time : 0
+				);
+				Tone.Transport.start();
+				timer.start((h, m, s, ms) => this.time = {
+					h,
+					m,
+					s,
+					ms
+				});
+			},
+			stopOnClick: function () {
 
-	stop();
-	playing = false;
-});
-volumeUpButton.click(() => {
+				Tone.Transport.stop();
+				timer.stop();
+				this.time = {
+					h: 0,
+					m: 0,
+					s: 0,
+					ms: 0
+				};
+				this.isPlaying = false;
+			},
+			volumeDownOnClick: function () {
 
-	volumeSpan.show();
-	Tone.Master.mute = false;
+				this.mute = false;
+				Tone.Master.mute = false;
+				this.volume = Math.round(Math.max(this.volume - 3, -24));
+				Tone.Master.volume.value = this.volume;
+			},
+			volumeUpOnClick: function () {
 
-	const clampedVolume = parseInt(Math.min(Tone.Master.volume.value + 3, 24));
-	volumeSpan.text(clampedVolume >= 0 ? '+' + clampedVolume : clampedVolume);
-	Tone.Master.volume.value = clampedVolume;
-});
-volumeDownButton.click(() => {
+				this.mute = false;
+				Tone.Master.mute = false;
+				this.volume = Math.round(Math.min(this.volume + 3, 24));
+				Tone.Master.volume.value = this.volume;
+			},
+			volumeOffOnClick: function () {
 
-	volumeSpan.show();
-	Tone.Master.mute = false;
+				this.mute = !this.mute;
+				Tone.Master.mute = this.mute;
+			},
+			bpmIncreaseOnClick: function () {
 
-	const clampedVolume = parseInt(Math.max(Tone.Master.volume.value - 3, -24));
-	volumeSpan.text(clampedVolume >= 0 ? '+' + clampedVolume : clampedVolume);
-	Tone.Master.volume.value = clampedVolume;
-});
-volumeOffButton.click(() => {
+				this.bpm = Math.max(Math.min(this.bpm + this.bpmIncrement, this.bpmMax), this.bpmMin);
+				Tone.Transport.bpm.value = this.bpm;
+				bpmSlider.bootstrapSlider('setValue', this.bpm);
+			},
+			bpmDecreaseOnClick: function () {
 
-	Tone.Master.mute ? volumeSpan.show() : volumeSpan.hide(); // Invert cuz we gonna change it now
-	Tone.Master.mute = !Tone.Master.mute;
-});
+				this.bpm = Math.max(Math.min(this.bpm - this.bpmIncrement, this.bpmMax), this.bpmMin);
+				Tone.Transport.bpm.value = this.bpm;
+				bpmSlider.bootstrapSlider('setValue', this.bpm);
+			},
+			bpmTapOnClick: function () {
 
-// ==== BPM ====
+				const now = new Date().getTime();
+				if (this._taps.length > 0 && (now - this._taps[this._taps.length - 1]) > tapTimeout) {
+					this._taps = [];
+					this.bpm = 100;
+				}
+				this._taps.push(now);
+				if (this._taps.length === 1) {
+					return;
+				}
+				const tapsDifference = [];
+				for (let index = 1; index < this._taps.length; index++) {
+					tapsDifference.push(this._taps[index] - this._taps[index - 1]);
+				}
+				const avg = (tapsDifference.reduce((a, b) => a + b) / tapsDifference.length);
+				this.bpm = Math.round((1000 * 60) / avg);
+				Tone.Transport.bpm.value = this.bpm;
+			},
+			isbpmRampEnabled: function () {
 
-// :: BPM Input ::
+				return this.bpmRamp.timeEnabled || this.bpmRamp.stepsEnabled;
+			},
+			bpmTimeEnabledOnClick: function () {
 
-const bpmInput = $('#BPMInput');
-const bpmIncreaseButton = $('#BPMIncreaseButton');
-const bpmDecreaseButton = $('#BPMDecreaseButton');
-const bpmTapButton = $('#BPMTapButton');
-let taps = [];
-const tapTimeout = 1000 * 4;
+				this.bpmRamp.stepsEnabled = false;
+				this.isbpmRampEnabled() ? bpmSlider.bootstrapSlider('disable') : bpmSlider.bootstrapSlider('enable');
+			},
+			bpmStepsEnabledOnClick: function () {
 
-bpmInput.change(() => setBPM(parseInt(bpmInput.val())));
-bpmIncreaseButton.click(() => setBPM(parseInt(bpmInput.val()) + 10));
-bpmDecreaseButton.click(() => setBPM(parseInt(bpmInput.val()) - 10));
-bpmTapButton.click(() => {
+				this.bpmRamp.timeEnabled = false;
+				this.isbpmRampEnabled() ? bpmSlider.bootstrapSlider('disable') : bpmSlider.bootstrapSlider('enable');
+			},
+			bpmRampFromIncreaseOnClick: function () {
 
-	const now = new Date().getTime();
-	if (taps.length > 0 && (now - taps[taps.length - 1]) > tapTimeout) {
-		taps = [];
-		setBPM(parseInt(100));
-	}
-	taps.push(now);
-	if (taps.length === 1) {
-		return;
-	}
-	const tapsDifference = [];
-	for (let index = 1; index < taps.length; index++) {
-		tapsDifference.push(taps[index] - taps[index - 1]);
-	}
-	const avg = (tapsDifference.reduce((a, b) => a + b) / tapsDifference.length);
-	const bpm = (1000 * 60) / avg;
-	setBPM(parseInt(bpm));
-});
+				this.bpmRamp.from = Math.max(Math.min(this.bpmRamp.from + this.bpmIncrement, this.bpmMax), this.bpmMin);
+			},
+			bpmRampFromDecreaseOnClick: function () {
 
-// :: BPM Slider ::
+				this.bpmRamp.from = Math.max(Math.min(this.bpmRamp.from - this.bpmIncrement, this.bpmMax), this.bpmMin);
+			},
+			bpmRampToIncreaseOnClick: function () {
 
-//https://github.com/seiyria/bootstrap-slider
+				this.bpmRamp.to = Math.max(Math.min(this.bpmRamp.to + this.bpmIncrement, this.bpmMax), this.bpmMin);
+			},
+			bpmRampToDecreaseOnClick: function () {
 
-const bpmSlider = $('#BPMSlider').bootstrapSlider({
-	min: parseInt(bpmInput.attr('min')),
-	max: parseInt(bpmInput.attr('max')),
-	value: getBPM(),
-	step: 1,
-});
-bpmSlider.change(() => setBPM(bpmSlider.bootstrapSlider('getValue')));
+				this.bpmRamp.to = Math.max(Math.min(this.bpmRamp.to - this.bpmIncrement, this.bpmMax), this.bpmMin);
+			},
+			bpmRampIncreaseOnClick: function () {
 
-// :: BPM Ramp ::
+				this.bpmRamp.interval = Math.max(Math.min(this.bpmRamp.interval + 10, this.bpmRamp.max), this.bpmRamp.min);
+			},
+			bpmRampDecreaseOnClick: function () {
 
-const bpmRampFromInput = $('#BPMRampFromInput');
-const bpmRampToInput = $('#BPMRampToInput');
-const bpmRampTimeInput = $('#BPMRampTimeInput');
-const bpmRampEnabledInput = $('#BPMRampEnabledInput');
+				this.bpmRamp.interval = Math.max(Math.min(this.bpmRamp.interval - 10, this.bpmRamp.max), this.bpmRamp.min);
+			},
+		}
+	});
 
-bpmRampFromInput.change(() => {
+	// :: BPM Slider ::
 
-	Tone.Transport.bpm.value = parseInt(bpmRampFromInput.val());
-	Tone.Transport.bpm.rampTo(parseInt(bpmRampToInput.val()), parseInt(bpmRampTimeInput.val()));
-});
-bpmRampToInput.change(() => {
+	//https://github.com/seiyria/bootstrap-slider
+	const bpmSlider = $('#BPMSlider').bootstrapSlider({
+		min: app.bpmMin,
+		max: app.bpmMax,
+		value: app.bpm,
+		step: 1,
+	});
+	bpmSlider.change(() => app.bpm = Tone.Transport.bpm.value = bpmSlider.bootstrapSlider('getValue'));
 
-	Tone.Transport.bpm.value = parseInt(bpmRampFromInput.val());
-	Tone.Transport.bpm.rampTo(parseInt(bpmRampToInput.val()), parseInt(bpmRampTimeInput.val()));
-});
-bpmRampTimeInput.change(() => {
+	//https://tonejs.github.io/docs/
 
-	Tone.Transport.bpm.value = parseInt(bpmRampFromInput.val());
-	Tone.Transport.bpm.rampTo(parseInt(bpmRampToInput.val()), parseInt(bpmRampTimeInput.val()));
-});
-bpmRampEnabledInput.change(() => {
+	// ==== BPM ====
 
-	const bpmRampEnabled = bpmRampEnabledInput.is(':checked');
+	// :: Meter ::
 
-	bpmInput.prop('disabled', bpmRampEnabled);
-	bpmIncreaseButton.prop('disabled', bpmRampEnabled);
-	bpmDecreaseButton.prop('disabled', bpmRampEnabled);
-	bpmTapButton.prop('disabled', bpmRampEnabled);
-	bpmRampEnabled ? bpmSlider.bootstrapSlider('disable') : bpmSlider.bootstrapSlider('enable');
+	// const beatsInput = $('#BeatsInput');
+	// const subunitsInput = $('#SubunitsInput');
 
-	bpmRampFromInput.prop('disabled', !bpmRampEnabled);
-	bpmRampToInput.prop('disabled', !bpmRampEnabled);
-	bpmRampTimeInput.prop('disabled', !bpmRampEnabled);
-});
+	// beatsInput.change(() => setMeter(parseInt(beatsInput.val()), parseInt(subunitsInput.val())));
+	// subunitsInput.change(() => setMeter(parseInt(beatsInput.val()), parseInt(subunitsInput.val())));
 
-// Otherwise may persist over refresh!
-bpmRampEnabledInput.prop("checked", false);
-bpmRampFromInput.prop('disabled', true);
-bpmRampToInput.prop('disabled', true);
-bpmRampTimeInput.prop('disabled', true);
+	// :: Subdivisions ::
 
-// :: Meter ::
+	// const Subdivisions = {
+	// 	None: 'None',
+	// 	Single: 'Single',
+	// 	Duple: 'Duple',
+	// 	Triple: 'Triple',
+	// 	Quadruple: 'Quadruple',
+	// 	Quintuple: 'Quintuple',
+	// 	Sextuple: 'Sextuple',
+	// 	Septuple: 'Septuple',
+	// 	Tripple3rd: 'Tripple 3rd',
+	// 	Quadruple4th: 'Quadruple 4th',
+	// };
+	// const subdivisionsInput = $('#SubdivisionsInput');
 
-const beatsInput = $('#BeatsInput');
-const subunitsInput = $('#SubunitsInput');
+	// subdivisionsInput.click(() => setSubdivisions(parseInt(subdivisionsInput.val())));
 
-beatsInput.change(() => setMeter(parseInt(beatsInput.val()), parseInt(subunitsInput.val())));
-subunitsInput.change(() => setMeter(parseInt(beatsInput.val()), parseInt(subunitsInput.val())));
+	// :: Pills ::
 
-// :: Subdivisions ::
+	const pills = $('#Pills');
 
-const Subdivisions = {
-	None: 'None',
-	Single: 'Single',
-	Duple: 'Duple',
-	Triple: 'Triple',
-	Quadruple: 'Quadruple',
-	Quintuple: 'Quintuple',
-	Sextuple: 'Sextuple',
-	Septuple: 'Septuple',
-	Tripple3rd: 'Tripple 3rd',
-	Quadruple4th: 'Quadruple 4th',
-};
-const subdivisionsInput = $('#SubdivisionsInput');
+	// :: Sounds ::
 
-subdivisionsInput.click(() => setSubdivisions(parseInt(subdivisionsInput.val())));
+	/*
+	The top number of the time signature tells you how many beats to count. This could be any number. 
+	Most often the number of beats will fall between 2 and 12.
 
-// :: Pills ::
+	The bottom number tells you what kind of note to count. That is, whether to count the beats as quarter notes, eighth notes, 
+	or sixteenth notes. So the only numbers you will see as the bottom number (the denominator) will correspond to note values:
 
-const pills = $('#Pills');
+		1 = whole note (you’ll never see this)
+		2 = half note
+		4 = quarter note
+		8 = eighth note
+		16 = sixteenth note 
+	*/
 
-// :: Sounds ::
+	//The time signature as just the numerator over 4. For example 4/4 would be just 4 and 6/8 would be 3.
+	//Tone.Transport.timeSignature = getMeter();
+	//Tone.Transport.bpm.value = app.bpm; //getBPM();
 
-/*
-The top number of the time signature tells you how many beats to count. This could be any number. 
-Most often the number of beats will fall between 2 and 12.
+	//console.log('timeSignature', Tone.Transport.timeSignature);
+	// console.log('value', Tone.Transport.bpm.value);
 
-The bottom number tells you what kind of note to count. That is, whether to count the beats as quarter notes, eighth notes, 
-or sixteenth notes. So the only numbers you will see as the bottom number (the denominator) will correspond to note values:
+	const accent = new Tone.Player({
+		url: "./Sounds/Ping Hi.wav",
+	}).toMaster();
+	const beat = new Tone.Player({
+		url: "./Sounds/Ping Low.wav",
+	}).toMaster();
 
-	1 = whole note (you’ll never see this)
-	2 = half note
-	4 = quarter note
-	8 = eighth note
-	16 = sixteenth note 
-*/
+	let currentNote = 0;
 
-//The time signature as just the numerator over 4. For example 4/4 would be just 4 and 6/8 would be 3.
-Tone.Transport.timeSignature = getMeter();
-Tone.Transport.bpm.value = getBPM();
+	//https://tonejs.github.io/docs/#types/Time
+	Tone.Transport.scheduleRepeat((time) => {
 
-//console.log('timeSignature', Tone.Transport.timeSignature);
-// console.log('value', Tone.Transport.bpm.value);
+		currentNote = (currentNote % Tone.Transport.timeSignature) + 1;
+		//console.log('currentNote', currentNote);
+		const currentPill = $(pills.children()[currentNote - 1]);
+		//console.log('currentPill', currentPill.css('background-color'));
 
-const accent = new Tone.Player({
-	url: "./Sounds/Ping Hi.wav",
-}).toMaster();
-const beat = new Tone.Player({
-	url: "./Sounds/Ping Low.wav",
-}).toMaster();
+		if (currentNote === 1) {
+			currentPill.animate({
+				backgroundColor: "rgb(255,0,0)"
+			}, 50, () => currentPill.animate({
+				backgroundColor: '#636c72'
+			}));
+			accent.start(time);
+		} else {
+			currentPill.animate({
+				backgroundColor: "rgb(0,255,0)"
+			}, 50, () => currentPill.animate({
+				backgroundColor: '#636c72'
+			}));
+			beat.start(time);
+		}
 
-let currentNote = 0;
+		if (app.bpmRamp.stepsEnabled && currentNote === Tone.Transport.timeSignature) {
 
-//https://tonejs.github.io/docs/#types/Time
-Tone.Transport.scheduleRepeat((time) => {
+			const increase = (app.bpmRamp.to - app.bpmRamp.from) / app.bpmRamp.interval;
+			Tone.Transport.bpm.setValueAtTime(Math.round(Math.max(Math.min(Tone.Transport.bpm.value + increase, app.bpmMax), app.bpmMin)), time);
+		}
+		app.bpm = Math.round(Tone.Transport.bpm.value);
+		bpmSlider.bootstrapSlider('setValue', app.bpm);
+	}, "4n");
 
-	currentNote = (currentNote % Tone.Transport.timeSignature) + 1;
-	console.log('currentNote', currentNote);
-	const currentPill = $(pills.children()[currentNote - 1]);
-	console.log('currentPill', currentPill.css('background-color'));
+	// :: Functions ::
 
-	if (currentNote === 1) {
-		currentPill.animate({
-			backgroundColor: "rgb(255,0,0)"
-		}, 50, () => currentPill.animate({
-			backgroundColor: '#636c72'
-		}));
-		accent.start(time);
-	} else {
-		currentPill.animate({
-			backgroundColor: "rgb(0,255,0)"
-		}, 50, () => currentPill.animate({
-			backgroundColor: '#636c72'
-		}));
-		beat.start(time);
-	}
+	// function getMeter() {
 
-	bpmSlider.bootstrapSlider('setValue', parseInt(Tone.Transport.bpm.value));
-	bpmInput.val(parseInt(Tone.Transport.bpm.value));
-}, "4n");
-
-// TODO: Reset ALL ui
-
-// :: Functions ::
-
-function play() {
-
-	// if (bpmRampEnabledInput.is(':checked')) {
-	// 	setBPM(parseInt(bpmRampFromInput.val()));
+	// 	const beats = parseInt(beatsInput.val());
+	// 	const subunits = parseInt(subunitsInput.val());
+	// 	return [beats, subunits];
 	// }
 
-	if (bpmRampEnabledInput.is(':checked')) {
+	// function setMeter(beats, subunits) {
 
-		setBPM(parseInt(bpmRampFromInput.val()));
-		Tone.Transport.bpm.value = parseInt(bpmRampFromInput.val());
-		Tone.Transport.bpm.rampTo(parseInt(bpmRampToInput.val()), parseInt(bpmRampTimeInput.val()));
-	} else {
+	// 	beatsInput.val(beats);
+	// 	subunitsInput.val(subunits);
+	// 	Tone.Transport.timeSignature = [beats, subunits];
 
-		Tone.Transport.bpm.value = getBPM();
-		Tone.Transport.bpm.rampTo(Tone.Transport.bpm.value, 0);
-	}
+	// 	pills.empty();
+	// 	for (var index = 1; index <= Tone.Transport.timeSignature; index++) {
+	// 		pills.append($('<span>').addClass('badge badge-pill badge-default').css('margin', '3px').text(index));
+	// 		//pills.append(`<span class="badge badge-pill badge-default">${index}</span>`);				
+	// 	}
+	// }
 
-	playPauseButton.html('<i class="fa fa-pause"></i>');
-	Tone.Transport.start();
-	timer.start((h, m, s, ms) => timeLabel.text(h + ':' + ("0" + m).slice(-2) + ':' + ("0" + s).slice(-2)));
-}
+	// function getSubdivisions() {
 
-function pause() {
+	// 	return _(Subdivisions).findKey(value => value === subdivisionsInput.val());
+	// }
 
-	playPauseButton.html('<i class="fa fa-play"></i>');
-	Tone.Transport.pause();
-	timer.pause();
-}
+	// function setSubdivisions(subdivisions) {
 
-function stop() {
-
-	playPauseButton.html('<i class="fa fa-play"></i>');
-	Tone.Transport.stop();
-	timer.stop();
-	timeLabel.text('0:00:00');
-}
-
-function getBPM() {
-
-	return parseInt(bpmInput.val());
-}
-
-function setBPM(value) {
-
-	const clampedValue = Math.max(Math.min(value, bpmInput.attr('max')), bpmInput.attr('min'));
-	bpmSlider.bootstrapSlider('setValue', clampedValue);
-	bpmInput.val(clampedValue);
-	Tone.Transport.bpm.value = clampedValue;
-}
-
-function getMeter() {
-
-	const beats = parseInt(beatsInput.val());
-	const subunits = parseInt(subunitsInput.val());
-	return [beats, subunits];
-}
-
-function setMeter(beats, subunits) {
-
-	beatsInput.val(beats);
-	subunitsInput.val(subunits);
-	Tone.Transport.timeSignature = [beats, subunits];
-
-	pills.empty();
-	for (var index = 1; index <= Tone.Transport.timeSignature; index++) {
-		pills.append($('<span>').addClass('badge badge-pill badge-default').css('margin', '3px').text(index));
-		//pills.append(`<span class="badge badge-pill badge-default">${index}</span>`);				
-	}
-}
-
-function getSubdivisions() {
-
-	return _(Subdivisions).findKey(value => value === subdivisionsInput.val());
-}
-
-function setSubdivisions(subdivisions) {
-
-	subdivisionsInput.val(Subdivisions[subdivisions]);
-}
+	// 	subdivisionsInput.val(Subdivisions[subdivisions]);
+	// }
+});

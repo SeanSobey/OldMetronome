@@ -19,7 +19,7 @@
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-alpha.6/css/bootstrap.css" crossorigin="anonymous">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.8.0/css/bootstrap-slider.css">
-	
+
 	<link rel="stylesheet" href="./Styles/main.css">
 
 	<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/webcomponentsjs/0.7.24/webcomponents.js" type="application/javascript" type="application/javascript" crossorigin="anonymous"></script>-->
@@ -27,11 +27,14 @@
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.js" crossorigin="anonymous"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-color/2.1.2/jquery.color.js" type="application/javascript" crossorigin="anonymous"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.js" type="application/javascript" crossorigin="anonymous"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-alpha.6/js/bootstrap.js" type="application/javascript" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-alpha.6/js/bootstrap.js" type="application/javascript"
+	    crossorigin="anonymous"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore.js" type="application/javascript" crossorigin="anonymous"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/0.10.0/Tone.js" type="application/javascript" crossorigin="anonymous"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.8.0/bootstrap-slider.js" type="application/javascript" crossorigin="anonymous"></script>
-	
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.8.0/bootstrap-slider.js" type="application/javascript"
+	    crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.3.3/vue.js" type="application/javascript" crossorigin="anonymous"></script>
+
 	<script type="application/javascript" src="./Scripts/timer.js"></script>
 	<script type="application/javascript" src="./Scripts/main.js"></script>
 </head>
@@ -41,7 +44,7 @@
 		<p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="#">upgrade your browser</a> to improve your experience.</p>
 	<![endif]-->
 
-	<div class="container">
+	<div id="app" class="container">
 		<div class="header clearfix">
 			<nav>
 				<ul class="nav nav-pills float-right">
@@ -62,26 +65,26 @@
 		<div class="jumbotron text-center">
 			<!-- Time -->
 			<h2>
-				<i class="fa fa-clock-o"></i>&nbsp;<label id="TimeLabel">0:00:00</label>
+				<i class="fa fa-clock-o"></i>&nbsp;<label>{{time | time()}}</label>
 			</h2>
 			<br />
 			<!-- Controls -->
-			<button id="PlayPauseButton" type="button" class="btn btn-primary btn-lg"><i class="fa fa-play"></i></button>
-			<button id="StopButton" type="button" class="btn btn-primary btn-lg"><i class="fa fa-stop"></i></button>
-			<button id="VolumeDownButton" type="button" class="btn btn-primary btn-lg"><i class="fa fa-volume-down"></i></button>
-			<button id="VolumeUpButton" type="button" class="btn btn-primary btn-lg"><i class="fa fa-volume-up"></i></button>
-			<button id="VolumeOffButton" type="button" class="btn btn-primary btn-lg"><i class="fa fa-volume-off"></i>&nbsp;<span id="VolumeSpan">+0</span>db</button>
+			<button type="button" class="btn btn-primary btn-lg" v-on:click="playPauseOnClick"><i class="fa" v-bind:class="{ 'fa-pause': isPlaying, 'fa-play': !isPlaying }"></i></button>
+			<button type="button" class="btn btn-primary btn-lg" v-on:click="stopOnClick"><i class="fa fa-stop"></i></button>
+			<button type="button" class="btn btn-primary btn-lg" v-on:click="volumeDownOnClick"><i class="fa fa-volume-down"></i></button>
+			<button type="button" class="btn btn-primary btn-lg" v-on:click="volumeUpOnClick"><i class="fa fa-volume-up"></i></button>
+			<button type="button" class="btn btn-primary btn-lg" v-on:click="volumeOffOnClick"><i class="fa fa-volume-off"></i>&nbsp;{{ volume | volume(mute) }}</button>
 			<hr />
 			<div class="row">
 				<!-- BPM -->
 				<div class="input-group col-md-6">
 					<span class="input-group-addon"><i class="fa fa-spinner"></i>BPM</span>
-					<input id="BPMInput" type="number" class="form-control" value="100" min="10" max="220">
+					<input type="number" class="form-control" v-bind:min="bpmMin" v-bind:max="bpmMax" v-model.number="bpm" v-bind:disabled="isbpmRampEnabled()">
 					<div class="input-group-btn">
-						<button id="BPMIncreaseButton" type="button" class="btn btn-primary btn-sm"><i class="fa fa-plus"></i></button>
-						<button id="BPMDecreaseButton" type="button" class="btn btn-primary btn-sm"><i class="fa fa-minus"></i></button>
+						<button type="button" class="btn btn-primary btn-sm" v-on:click="bpmIncreaseOnClick" v-bind:disabled="isbpmRampEnabled()"><i class="fa fa-plus"></i></button>
+						<button type="button" class="btn btn-primary btn-sm" v-on:click="bpmDecreaseOnClick" v-bind:disabled="isbpmRampEnabled()"><i class="fa fa-minus"></i></button>
 					</div>
-					<button id="BPMTapButton" type="button" class="btn btn-secondary">Tap</button>
+					<button type="button" class="btn btn-secondary" v-on:click="bpmTapOnClick" v-bind:disabled="isbpmRampEnabled()">Tap</button>
 				</div>
 				<!-- BPM Slider -->
 				<div class="input-group col-md-6">
@@ -93,26 +96,42 @@
 			<br />
 			<!-- BPM Ramp -->
 			<div class="input-group">
-				<span class="input-group-addon"><i class="fa fa-arrow-up"></i>BPM Ramp</span>
-				<input id="BPMRampFromInput" type="number" class="form-control" value="100" min="10" max="220">
-				<span class="input-group-addon">To</span>
-				<input id="BPMRampToInput" type="number" class="form-control" value="100" min="10" max="220">
-				<span class="input-group-addon">Over</span>
-				<input id="BPMRampTimeInput" type="number" class="form-control" value="60" min="1" max="1200">
-				<span class="input-group-addon">Seconds</span>
+				<span class="input-group-addon"><i class="fa fa-arrow-up"></i>Ramp</span>
+				<input type="number" class="form-control" v-bind:min="bpmMin" v-bind:max="bpmMax" v-model.number="bpmRamp.from" v-bind:disabled="!isbpmRampEnabled()">
+				<div class="input-group-btn">
+					<button type="button" class="btn btn-primary btn-sm" v-on:click="bpmRampFromIncreaseOnClick" v-bind:disabled="!isbpmRampEnabled()"><i class="fa fa-plus"></i></button>
+					<button type="button" class="btn btn-primary btn-sm" v-on:click="bpmRampFromDecreaseOnClick" v-bind:disabled="!isbpmRampEnabled()"><i class="fa fa-minus"></i></button>
+				</div>
+				<span class="input-group-addon">to</span>
+				<input type="number" class="form-control" v-bind:min="bpmMin" v-bind:max="bpmMax" v-model.number="bpmRamp.to" v-bind:disabled="!isbpmRampEnabled()">
+				<div class="input-group-btn">
+					<button type="button" class="btn btn-primary btn-sm" v-on:click="bpmRampToIncreaseOnClick" v-bind:disabled="!isbpmRampEnabled()"><i class="fa fa-plus"></i></button>
+					<button type="button" class="btn btn-primary btn-sm" v-on:click="bpmRampToDecreaseOnClick" v-bind:disabled="!isbpmRampEnabled()"><i class="fa fa-minus"></i></button>
+				</div>
+				<span class="input-group-addon">over</span>
+				<input type="number" class="form-control" min="bpmRamp.min" max="bpmRamp.max" v-model.number="bpmRamp.interval" v-bind:disabled="!isbpmRampEnabled()">
+				<div class="input-group-btn">
+					<button type="button" class="btn btn-primary btn-sm" v-on:click="bpmRampIncreaseOnClick" v-bind:disabled="!isbpmRampEnabled()"><i class="fa fa-plus"></i></button>
+					<button type="button" class="btn btn-primary btn-sm" v-on:click="bpmRampDecreaseOnClick" v-bind:disabled="!isbpmRampEnabled()"><i class="fa fa-minus"></i></button>
+				</div>
 				<span class="input-group-addon">
-       				<input id="BPMRampEnabledInput" type="checkbox" aria-label="Checkbox for BPM Ramp enable">
-      			</span>
+					<span>secs</span>
+					<input type="checkbox" aria-label="Checkbox for BPM Ramp enable" v-model="bpmRamp.timeEnabled" v-on:click="bpmTimeEnabledOnClick()" style="margin:auto">
+				</span>
+				<span class="input-group-addon">
+					<span>bars</span>
+					<input type="checkbox" aria-label="Checkbox for BPM Ramp enable" v-model="bpmRamp.stepsEnabled" v-on:click="bpmStepsEnabledOnClick()" style="margin:auto">
+				</span>
 			</div>
 			<hr />
 			<div class="row">
 				<!-- Meter -->
-				<div class="input-group col-md-6">
+				<!--<div class="input-group col-md-6">
 					<div class="input-group">
 						<span class="input-group-addon"><i class="fa fa-tachometer"></i>Meter</span>
-						<input id="BeatsInput" type="number" class="form-control" value="4" min="0" max="10">
+						<input id="BeatsInput" type="number" class="form-control" min="0" max="10" v-model.number="beats">
 						<span class="input-group-addon">/</span>
-						<input id="SubunitsInput" type="number" class="form-control" value="4" min="0" max="4">
+						<input id="SubunitsInput" type="number" class="form-control" min="0" max="4" v-model.number="subunits">
 						<div class="input-group-btn">
 							<button type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
 							<div class="dropdown-menu dropdown-menu-right">
@@ -126,9 +145,9 @@
 							</div>
 						</div>
 					</div>
-				</div>
+				</div>-->
 				<!-- Subdivisions -->
-				<div class="input-group col-md-6">
+				<!--<div class="input-group col-md-6">
 					<span class="input-group-addon"><i class="fa fa-music"></i>Subdivisions</span>
 					<input id="SubdivisionsInput" type="text" class="form-control" data-toggle="dropdown" placeholder="None" disabled style="background-color:white;">
 					<div class="input-group-btn">
@@ -147,7 +166,7 @@
 							<a class="dropdown-item" href="javascript:setSubdivisions('Quadruple 4th')">Quadruple 4th</a>
 						</div>
 					</div>
-				</div>
+				</div>-->
 			</div>
 			<hr />
 			<div id="Pills">
