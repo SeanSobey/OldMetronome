@@ -3,8 +3,9 @@ $(() => {
 	Vue.filter('time', value => `${value.h}:${("0" + value.m).slice(-2)}:${("0" + value.s).slice(-2)}`);
 	Vue.filter('volume', (value, mute) => mute ? '' : `${value >= 0 ? '+' : ''}${value}db`);
 
-	const timer = new Timer();
+	const timer = new Timer();	//TODO: https://tonejs.github.io/docs/#Clock
 	const tapTimeout = 1000 * 4;
+	let currentNote = 0;
 
 	const app = new Vue({
 		el: '#app',
@@ -34,34 +35,47 @@ $(() => {
 			mute: false,
 			volume: 0,
 
-			_taps: [],
+			taps: [],
 		},
 		methods: {
 			playPauseOnClick: function () {
 
 				this.isPlaying = !this.isPlaying;
-				if (!this.isPlaying) {
+				switch (Tone.Transport.state) {
 
-					Tone.Transport.pause();
-					timer.pause();
-					return;
+					case 'started':
+						Tone.Transport.pause();
+						timer.pause();
+						return;
+
+					case 'stopped':
+						currentNote = 0;
+						if (this.isbpmRampEnabled()) {
+							this.bpm = this.bpmRamp.from;
+						}
+						// Have to do both for weird reasons :(
+						Tone.Transport.bpm.value = this.bpm;
+						Tone.Transport.bpm.setValueAtTime(this.bpm, Tone.now());
+						if (this.bpmRamp.timeEnabled) {
+							Tone.Transport.bpm.rampTo(this.bpmRamp.to, this.bpmRamp.interval);
+						}
+						//https://tonejs.github.io/docs/#types/Time
+						Tone.Transport.scheduleRepeat(loop, "4n");
+						break;
+
+					case 'paused':
+						break;
+
+					default:
+						throw new Error('Un-handled state: ' + Tone.Transport.state);
 				}
-				Tone.Transport.bpm.value = this.isbpmRampEnabled() ? this.bpmRamp.from : this.bpm;
-				Tone.Transport.bpm.rampTo(
-					this.bpmRamp.timeEnabled ? this.bpmRamp.to : this.bpm,
-					this.bpmRamp.timeEnabled ? this.bpmRamp.time : 0
-				);
 				Tone.Transport.start();
-				timer.start((h, m, s, ms) => this.time = {
-					h,
-					m,
-					s,
-					ms
-				});
+				timer.start((h, m, s, ms) => this.time = { h, m, s, ms });
 			},
 			stopOnClick: function () {
 
 				Tone.Transport.stop();
+				Tone.Transport.cancel();
 				timer.stop();
 				this.time = {
 					h: 0,
@@ -105,17 +119,17 @@ $(() => {
 			bpmTapOnClick: function () {
 
 				const now = new Date().getTime();
-				if (this._taps.length > 0 && (now - this._taps[this._taps.length - 1]) > tapTimeout) {
-					this._taps = [];
+				if (this.taps.length > 0 && (now - this.taps[this.taps.length - 1]) > tapTimeout) {
+					this.taps = [];
 					this.bpm = 100;
 				}
-				this._taps.push(now);
-				if (this._taps.length === 1) {
+				this.taps.push(now);
+				if (this.taps.length === 1) {
 					return;
 				}
 				const tapsDifference = [];
-				for (let index = 1; index < this._taps.length; index++) {
-					tapsDifference.push(this._taps[index] - this._taps[index - 1]);
+				for (let index = 1; index < this.taps.length; index++) {
+					tapsDifference.push(this.taps[index] - this.taps[index - 1]);
 				}
 				const avg = (tapsDifference.reduce((a, b) => a + b) / tapsDifference.length);
 				this.bpm = Math.round((1000 * 60) / avg);
@@ -237,10 +251,7 @@ $(() => {
 		url: "./Sounds/Ping Low.wav",
 	}).toMaster();
 
-	let currentNote = 0;
-
-	//https://tonejs.github.io/docs/#types/Time
-	Tone.Transport.scheduleRepeat((time) => {
+	function loop(time) {
 
 		currentNote = (currentNote % Tone.Transport.timeSignature) + 1;
 		//console.log('currentNote', currentNote);
@@ -264,13 +275,13 @@ $(() => {
 		}
 
 		if (app.bpmRamp.stepsEnabled && currentNote === Tone.Transport.timeSignature) {
-
 			const increase = (app.bpmRamp.to - app.bpmRamp.from) / app.bpmRamp.interval;
-			Tone.Transport.bpm.setValueAtTime(Math.round(Math.max(Math.min(Tone.Transport.bpm.value + increase, app.bpmMax), app.bpmMin)), time);
+			const bpm = Math.round(Math.max(Math.min(Tone.Transport.bpm.value + increase, app.bpmRamp.to), app.bpmRamp.from));
+			Tone.Transport.bpm.setValueAtTime(bpm, time);
 		}
 		app.bpm = Math.round(Tone.Transport.bpm.value);
 		bpmSlider.bootstrapSlider('setValue', app.bpm);
-	}, "4n");
+	}
 
 	// :: Functions ::
 
