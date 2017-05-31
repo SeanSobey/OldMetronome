@@ -5,15 +5,12 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"type": "node",
+			"name": "Debug Chrome",
+			"type": "chrome",
 			"request": "launch",
-			"name": "Launch via NPM",
-			"runtimeExecutable": "npm",
-			"windows": {
-				"runtimeExecutable": "npm.cmd"
-			},
-			"runtimeArgs": [ "run-script", "start" ],
-			"port": 5858
+			"url": "http://localhost:3000",
+			"sourceMaps": true,
+			"webRoot": "${workspaceRoot}"
 		}
 	]
 }
